@@ -1,3 +1,4 @@
+from math import gamma
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, List, Optional, Union
@@ -334,6 +335,7 @@ class RolloutBuffer(BaseBuffer):
         Equivalent to classic advantage when set to 1.
     :param gamma: Discount factor
     :param n_envs: Number of parallel environments
+    :param use_n_step_advantage: If set to True, the working of compute_returns_and_advantage is modified to use n-step bootstrap method for estimation of V values #modified
     """
 
     def __init__(
@@ -345,9 +347,11 @@ class RolloutBuffer(BaseBuffer):
         gae_lambda: float = 1,
         gamma: float = 0.99,
         n_envs: int = 1,
+        use_n_step_advantage: bool = False
     ):
 
         super().__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        self.use_n_step_advantage = use_n_step_advantage ## modified
         self.gae_lambda = gae_lambda
         self.gamma = gamma
         self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
@@ -387,10 +391,15 @@ class RolloutBuffer(BaseBuffer):
         :param last_values: state value estimation for the last step (one for each env)
         :param dones: if the last step was a terminal step (one bool for each env).
         """
+        ## Fetch the value of use_n_step_advantage 
+        use_n_step_advantage = self.use_n_step_advantage #modified
+
         # Convert to numpy
         last_values = last_values.clone().cpu().numpy().flatten()
 
         last_gae_lam = 0
+        R = last_values
+
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones
@@ -398,9 +407,16 @@ class RolloutBuffer(BaseBuffer):
             else:
                 next_non_terminal = 1.0 - self.episode_starts[step + 1]
                 next_values = self.values[step + 1]
-            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
-            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-            self.advantages[step] = last_gae_lam
+            
+            ## modified to accomodate n-step advantage
+            if use_n_step_advantage:
+                R = self.rewards[step] + self.gamma * R * next_non_terminal
+                self.advantages[step] = R - self.values[step]
+            else:
+                delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+                last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+                self.advantages[step] = last_gae_lam
+
         # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
         # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
         self.returns = self.advantages + self.values
@@ -664,6 +680,7 @@ class DictRolloutBuffer(RolloutBuffer):
         Equivalent to Monte-Carlo advantage estimate when set to 1.
     :param gamma: Discount factor
     :param n_envs: Number of parallel environments
+    :param use_n_step_advantage: If set to True, the working of compute_returns_and_advantage is modified to use n-step bootstrap method for estimation of V values #modified
     """
 
     def __init__(
@@ -675,6 +692,7 @@ class DictRolloutBuffer(RolloutBuffer):
         gae_lambda: float = 1,
         gamma: float = 0.99,
         n_envs: int = 1,
+        use_n_step_advantage:bool = False
     ):
 
         super(RolloutBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
@@ -682,6 +700,7 @@ class DictRolloutBuffer(RolloutBuffer):
         assert isinstance(self.obs_shape, dict), "DictRolloutBuffer must be used with Dict obs space only"
 
         self.gae_lambda = gae_lambda
+        self.use_n_step_advantage = use_n_step_advantage
         self.gamma = gamma
         self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
         self.returns, self.episode_starts, self.values, self.log_probs = None, None, None, None
