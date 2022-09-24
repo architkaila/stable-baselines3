@@ -1,8 +1,9 @@
+## Modifed version of Stable baseline3 which implements n-step advantage Actor Critic for Masters degree course requirement
+
 <img src="docs/\_static/img/logo.png" align="right" width="40%"/>
 
 [![pipeline status](https://gitlab.com/araffin/stable-baselines3/badges/master/pipeline.svg)](https://gitlab.com/araffin/stable-baselines3/-/commits/master) [![Documentation Status](https://readthedocs.org/projects/stable-baselines/badge/?version=master)](https://stable-baselines3.readthedocs.io/en/master/?badge=master) [![coverage report](https://gitlab.com/araffin/stable-baselines3/badges/master/coverage.svg)](https://gitlab.com/araffin/stable-baselines3/-/commits/master)
 [![codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
 
 # Stable Baselines3
 
