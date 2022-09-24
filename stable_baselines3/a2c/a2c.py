@@ -50,6 +50,7 @@ class A2C(OnPolicyAlgorithm):
     :param device: Device (cpu, cuda, ...) on which the code should be run.
         Setting it to auto, the code will be run on the GPU if possible.
     :param _init_setup_model: Whether or not to build the network at the creation of the instance
+    :param use_n_step_advantage: If set to True, the working of compute_returns_and_advantage is modified to use n-step bootstrap method for estimation of V values #modified
     """
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
@@ -81,6 +82,7 @@ class A2C(OnPolicyAlgorithm):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
+        use_n_step_advantage: bool = False
     ):
 
         super().__init__(
@@ -108,6 +110,7 @@ class A2C(OnPolicyAlgorithm):
                 spaces.MultiDiscrete,
                 spaces.MultiBinary,
             ),
+            use_n_step_advantage = use_n_step_advantage
         )
 
         self.normalize_advantage = normalize_advantage
