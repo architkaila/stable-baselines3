@@ -63,6 +63,7 @@ class A2C(OnPolicyAlgorithm):
         self,
         policy: Union[str, Type[ActorCriticPolicy]],
         env: Union[GymEnv, str],
+        use_n_step_advantage: bool = False,
         learning_rate: Union[float, Schedule] = 7e-4,
         n_steps: int = 5,
         gamma: float = 0.99,
@@ -82,7 +83,6 @@ class A2C(OnPolicyAlgorithm):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
-        use_n_step_advantage: bool = False
     ):
 
         super().__init__(
