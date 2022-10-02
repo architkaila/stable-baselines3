@@ -59,6 +59,7 @@ class DQN(OffPolicyAlgorithm):
     :param device: Device (cpu, cuda, ...) on which the code should be run.
         Setting it to auto, the code will be run on the GPU if possible.
     :param _init_setup_model: Whether or not to build the network at the creation of the instance
+    :param enable_double_dqn: set to True if you want to use Double DQn algo else False
     """
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
@@ -94,6 +95,7 @@ class DQN(OffPolicyAlgorithm):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
+        enable_double_dqn: bool = False,
     ):
 
         super().__init__(
@@ -134,6 +136,7 @@ class DQN(OffPolicyAlgorithm):
         # Linear schedule will be defined in `_setup_model()`
         self.exploration_schedule = None
         self.q_net, self.q_net_target = None, None
+        self.enable_double_dqn = enable_double_dqn
 
         if _init_setup_model:
             self._setup_model()
@@ -194,8 +197,17 @@ class DQN(OffPolicyAlgorithm):
             with th.no_grad():
                 # Compute the next Q-values using the target network
                 next_q_values = self.q_net_target(replay_data.next_observations)
-                # Follow greedy policy: use the one with the highest value
-                next_q_values, _ = next_q_values.max(dim=1)
+
+                ## Modification in Original Code to incorporate Double DQN for AIPI 590 Assignment
+                if self.enable_double_dqn:
+                    # select the action by using current model and maximizing q value
+                    max_actions = th.argmax(self.q_net(replay_data.next_observations), dim=1)
+                    # compute the q value of action using the target network
+                    next_q_values = th.gather(next_q_values, dim=1, index=max_actions.unsqueeze(-1))
+                else:
+                    # Follow greedy policy: use the one with the highest value
+                    next_q_values, _ = next_q_values.max(dim=1)
+
                 # Avoid potential broadcast issue
                 next_q_values = next_q_values.reshape(-1, 1)
                 # 1-step TD target
