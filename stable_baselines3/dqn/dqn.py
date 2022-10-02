@@ -200,11 +200,13 @@ class DQN(OffPolicyAlgorithm):
 
                 ## Modification in Original Code to incorporate Double DQN for AIPI 590 Assignment
                 if self.enable_double_dqn:
+                    print("## Using Double DQN")
                     # select the action by using current model and maximizing q value
                     max_actions = th.argmax(self.q_net(replay_data.next_observations), dim=1)
                     # compute the q value of action using the target network
                     next_q_values = th.gather(next_q_values, dim=1, index=max_actions.unsqueeze(-1))
                 else:
+                    print("## Using Vanilla DQN")
                     # Follow greedy policy: use the one with the highest value
                     next_q_values, _ = next_q_values.max(dim=1)
 
